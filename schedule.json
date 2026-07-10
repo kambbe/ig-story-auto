@@ -3,8 +3,7 @@
   "location": "Denenchofu, Tokyo",
 
   "//sheet": "臨時休業/時間変更をスマホから足すためのGoogleスプレッドシート公開CSV URL。空なら下のoverridesだけを使う。",
-  "overridesSheetCsvUrl": "",
-
+  "overridesSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTnFV6CHJPzv7lpOug_gtnRbh-nLd_HJ_MTDy4mIBj7ROOjx6DqhXEFvwRN319Z8UNyOLrM3hAlx6SQ/pub?gid=0&single=true&output=csv",
 
   "//": "regular = 毎週の固定営業時間。null = 定休日。時間は24時間表記。",
   "regular": {
