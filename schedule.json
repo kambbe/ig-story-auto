@@ -2,6 +2,10 @@
   "shopName": "has GROWN bike",
   "location": "Denenchofu, Tokyo",
 
+  "//sheet": "臨時休業/時間変更をスマホから足すためのGoogleスプレッドシート公開CSV URL。空なら下のoverridesだけを使う。",
+  "overridesSheetCsvUrl": "",
+
+
   "//": "regular = 毎週の固定営業時間。null = 定休日。時間は24時間表記。",
   "regular": {
     "mon": null,

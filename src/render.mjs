@@ -58,11 +58,65 @@ function fill(tpl, map) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => (map[k] ?? ''));
 }
 
+// ---- Googleスプレッドシート（公開CSV）から臨時休業/時間変更を読む ----
+// 列は2つだけ: A=日付(YYYY-MM-DD) / B=営業時間(例 14:00-18:00)
+//   営業時間が空 → 臨時休業 / 「14:00-18:00」→ 時間変更
+function parseCsv(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r') { /* skip */ }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function normDate(s) {
+  const m = String(s).trim().match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (!m) return null;
+  return `${m[1]}-${String(+m[2]).padStart(2, '0')}-${String(+m[3]).padStart(2, '0')}`;
+}
+
+async function fetchSheetOverrides(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const rows = parseCsv(await res.text());
+  const out = {};
+  for (const r of rows) {
+    const date = normDate(r[0] || '');
+    if (!date) continue; // ヘッダーや空行はスキップ
+    const hours = (r[1] || '').trim();
+    if (!hours) { out[date] = null; continue; }          // 空 → 臨時休業
+    const p = hours.split(/[-–—〜～~]/).map((x) => x.trim());
+    out[date] = (p.length >= 2 && p[0] && p[1]) ? { open: p[0], close: p[1] } : null;
+  }
+  return out;
+}
+
 async function main() {
   const arg = process.argv[2]; // 任意: YYYY-MM-DD
   const baseDate = arg ? new Date(`${arg}T12:00:00+09:00`) : new Date();
 
   const schedule = JSON.parse(await readFile(path.join(ROOT, 'schedule.json'), 'utf8'));
+
+  // スプレッドシートの臨時休業/時間変更を取り込む（失敗してもJSONのoverridesで継続）
+  if (schedule.overridesSheetCsvUrl) {
+    try {
+      const sheet = await fetchSheetOverrides(schedule.overridesSheetCsvUrl);
+      schedule.overrides = { ...(schedule.overrides || {}), ...sheet };
+      console.log(`[sheet] 臨時設定を読み込み: ${Object.keys(sheet).length}件`);
+    } catch (e) {
+      console.warn(`[sheet] 読み込み失敗（JSONのoverridesで継続）: ${e.message}`);
+    }
+  }
+
   const s = getStatus(schedule, baseDate);
 
   const outDir = path.join(ROOT, 'out');
