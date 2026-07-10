@@ -1,0 +1,52 @@
+name: daily-instagram-story
+
+# 毎日 JST 08:00（= UTC 23:00 前日）に実行。
+# 手動実行（workflow_dispatch）で臨時にも回せる。
+on:
+  schedule:
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # レンダリング画像を published ブランチへ push するため
+
+jobs:
+  post-story:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Render today's story PNG
+        run: node src/render.mjs
+
+      - name: Publish PNG to a public URL (immutable commit on published branch)
+        id: publish
+        run: |
+          OWNER_REPO="${{ github.repository }}"
+          mkdir -p published
+          cp out/story.png published/story.png
+          git config user.name  "story-bot"
+          git config user.email "story-bot@users.noreply.github.com"
+          git fetch origin published || true
+          git checkout -B published
+          git add -f published/story.png
+          git commit -m "story image $(date -u +%FT%TZ)" || echo "no changes"
+          git push -f origin published
+          SHA=$(git rev-parse HEAD)
+          echo "image_url=https://raw.githubusercontent.com/${OWNER_REPO}/${SHA}/published/story.png" >> "$GITHUB_OUTPUT"
+
+      - name: Post to Instagram Stories
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IMAGE_URL: ${{ steps.publish.outputs.image_url }}
+        run: node src/post.mjs

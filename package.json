@@ -1,0 +1,15 @@
+{
+  "name": "ig-story-auto",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "render": "node src/render.mjs",
+    "post": "node src/post.mjs",
+    "daily": "node src/render.mjs && node src/post.mjs"
+  },
+  "dependencies": {
+    "heic-convert": "^2.1.0",
+    "playwright": "^1.45.0"
+  }
+}

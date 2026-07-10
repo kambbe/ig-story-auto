@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@500&family=Noto+Sans+JP:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===== ブランド設定：ここだけ変えれば見た目が変わる ===== */
+      :root {
+        --accent: #0abab5;      /* アクセント色（CLOSED・区切り）ティファニーブルー */
+        --ink: #ffffff;         /* メインの文字色（数値・時間） */
+        --muted: #8f8f8f;       /* ラベルの文字色（日付・NEXT OPEN） */
+        --bg: #111111;
+
+        /* 文字サイズは4段階に統一 */
+        --fs-label: 30px;       /* ラベル（日付・NEXT OPEN） */
+        --fs-mid: 44px;         /* 日付（次の営業日） */
+        --fs-lg: 56px;          /* 営業時間 */
+        --fs-status: 130px;     /* OPEN / CLOSED */
+
+        --display: "Oswald", "Noto Sans JP", sans-serif;
+        --body: "Noto Sans JP", sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--body);
+        overflow: hidden;
+      }
+
+      .bg {
+        position: absolute;
+        inset: 0;
+        background-image: var(--bg-url);
+        background-size: cover;
+        background-position: center;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.5),
+          rgba(0, 0, 0, 0.25) 40%,
+          rgba(0, 0, 0, 0.7)
+        );
+      }
+
+      .frame {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      /* ラベル：日付・NEXT OPEN。色とサイズを統一 */
+      .today,
+      .next-lbl {
+        font-size: var(--fs-label);
+        color: var(--muted);
+        letter-spacing: 4px;
+      }
+      .next-lbl {
+        font-family: var(--display);
+        text-transform: uppercase;
+        letter-spacing: 6px;
+      }
+      .today {
+        margin-bottom: 30px;
+      }
+
+      .status {
+        font-family: var(--display);
+        font-size: var(--fs-status);
+        text-transform: uppercase;
+        line-height: 1;
+        letter-spacing: 2px;
+      }
+      body.is-closed .status {
+        color: var(--accent);
+      }
+
+      .rule {
+        width: 90px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 2px;
+        margin: 34px auto;
+      }
+
+      /* 営業時間 */
+      .hours {
+        font-family: var(--display);
+        font-size: var(--fs-lg);
+        color: var(--ink);
+        letter-spacing: 3px;
+      }
+      .hours .sep {
+        color: var(--ink);
+        padding: 0 12px;
+      }
+
+      .note {
+        margin-top: 26px;
+        font-size: var(--fs-label);
+        color: var(--muted);
+      }
+
+      /* 次の営業日：日付＋時間を1行、Next Openラベルと同サイズ */
+      .next-info {
+        margin-top: 14px;
+        font-size: var(--fs-label);
+        color: var(--ink);
+        letter-spacing: 2px;
+      }
+      .next-info .sep {
+        color: var(--ink);
+        padding: 0 8px;
+      }
+
+      .only-open,
+      .only-closed {
+        display: none;
+      }
+      body.is-open .only-open {
+        display: block;
+      }
+      body.is-closed .only-closed {
+        display: block;
+      }
+    </style>
+  </head>
+  <body class="{{BODY_CLASS}}" style="{{BODY_STYLE}}">
+    <div class="bg"></div>
+    <div class="scrim"></div>
+
+    <div class="frame">
+      <div class="today">{{DATE_LABEL}} {{WEEKDAY}}</div>
+
+      <div class="only-open">
+        <div class="status">OPEN</div>
+        <div class="rule"></div>
+        <div class="hours">{{OPEN}}<span class="sep">–</span>{{CLOSE}}</div>
+        <div class="note only-note">{{NOTE}}</div>
+      </div>
+
+      <div class="only-closed">
+        <div class="status">CLOSED</div>
+        <div class="rule"></div>
+        <div class="next-lbl">Next Open</div>
+        <div class="next-info">
+          {{NEXT_DATE}} {{NEXT_WEEKDAY}} {{NEXT_OPEN}}<span class="sep">–</span>{{NEXT_CLOSE}}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

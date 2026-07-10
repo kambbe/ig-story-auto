@@ -1,0 +1,31 @@
+{
+  "shopName": "has GROWN bike",
+  "location": "Denenchofu, Tokyo",
+
+  "//": "regular = 毎週の固定営業時間。null = 定休日。時間は24時間表記。",
+  "regular": {
+    "mon": null,
+    "tue": { "open": "12:00", "close": "18:00" },
+    "wed": null,
+    "thu": { "open": "12:00", "close": "18:00" },
+    "fri": { "open": "12:00", "close": "18:00" },
+    "sat": { "open": "12:00", "close": "18:00" },
+    "sun": null
+  },
+
+  "//overrides": "臨時の変更だけここに足す。日付をキーに。null=臨時休業 / {open,close}=時間変更。note は任意。",
+  "overrides": {
+    "2026-07-15": null,
+    "2026-07-20": {
+      "open": "14:00",
+      "close": "18:00",
+      "note": "都合により短縮営業"
+    },
+    "2026-07-21": {
+      "open": "14:00",
+      "close": "18:00",
+      "note": "都合により短縮営業"
+    },
+    "2026-07-22": null
+  }
+}
