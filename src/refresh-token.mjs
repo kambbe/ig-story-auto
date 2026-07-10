@@ -1,9 +1,10 @@
 // refresh-token.mjs
 // 長期アクセストークン（Instagramログイン方式）を延長する。
-// 約60日で失効するので、切れる前に実行して新しいトークンでSecretを更新する。
+// 標準出力(stdout)には「新しいトークンだけ」を出す（CIで取り込むため）。
+// 説明メッセージは標準エラー(stderr)へ。
 //
 // 環境変数:
-//   IG_ACCESS_TOKEN … 現在の長期トークン（60日以内・24時間以上経過したもの）
+//   IG_ACCESS_TOKEN … 現在の長期トークン
 // 実行:
 //   IG_ACCESS_TOKEN=xxxx node src/refresh-token.mjs
 
@@ -18,6 +19,6 @@ const res = await fetch(url);
 const json = await res.json();
 if (!res.ok || json.error) { console.error(JSON.stringify(json, null, 2)); process.exit(1); }
 
-console.log('新しい長期トークン:');
-console.log(json.access_token);
-console.log(`有効期限(秒): ${json.expires_in ?? '(不明)'}  ≒ ${Math.round((json.expires_in || 0) / 86400)}日`);
+const days = Math.round((json.expires_in || 0) / 86400);
+console.error(`新しい長期トークンを取得（有効期限 約${days}日）`);
+process.stdout.write(json.access_token); // stdout はトークンのみ

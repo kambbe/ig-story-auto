@@ -1,0 +1,28 @@
+name: refresh-instagram-token
+
+# 毎月1日にトークンを延長し、Secret（IG_ACCESS_TOKEN）を自動更新する。
+# 手動実行も可能。
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Refresh token and update secret
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          NEW=$(node src/refresh-token.mjs)
+          if [ -z "$NEW" ]; then echo "no token returned"; exit 1; fi
+          gh secret set IG_ACCESS_TOKEN --repo "${{ github.repository }}" --body "$NEW"
+          echo "IG_ACCESS_TOKEN を更新しました"
