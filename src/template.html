@@ -13,7 +13,7 @@
       :root {
         --accent: #0abab5;      /* アクセント色（CLOSED・区切り）ティファニーブルー */
         --ink: #ffffff;         /* メインの文字色（数値・時間） */
-        --muted: #8f8f8f;       /* ラベルの文字色（日付・NEXT OPEN） */
+        --muted: #d4d4d4;       /* ラベルの文字色（日付・NEXT OPEN） */
         --bg: #111111;
 
         /* 文字サイズは4段階に統一 */
@@ -54,9 +54,9 @@
         inset: 0;
         background: linear-gradient(
           180deg,
-          rgba(0, 0, 0, 0.5),
-          rgba(0, 0, 0, 0.25) 40%,
-          rgba(0, 0, 0, 0.7)
+          rgba(0, 0, 0, 0.55),
+          rgba(0, 0, 0, 0.4) 40%,
+          rgba(0, 0, 0, 0.72)
         );
       }
 
@@ -68,6 +68,7 @@
         justify-content: center;
         align-items: center;
         text-align: center;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); /* 明るい写真でも読めるように */
       }
 
       /* ラベル：日付・NEXT OPEN。色とサイズを統一 */
