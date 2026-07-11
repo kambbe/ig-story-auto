@@ -22,17 +22,24 @@ function jstParts(date) {
   return { ymd, dow, y, m, d };
 }
 
-// その日の営業時間オブジェクト(またはnull=休業)を返す
+// その日の設定オブジェクトを返す。
+//   {open,close,note?} = 営業 / null = 休業 / {closed:true,note} = 休業＋一言
 function hoursFor(schedule, ymd, dowKey) {
   if (Object.prototype.hasOwnProperty.call(schedule.overrides || {}, ymd)) {
-    return schedule.overrides[ymd]; // null か {open,close,note}
+    return schedule.overrides[ymd];
   }
   return schedule.regular[dowKey] ?? null;
 }
 
+// 「営業」とみなせる値だけ返す（open がある場合のみ）。休業系は null。
+function openVal(v) {
+  return (v && v.open) ? v : null;
+}
+
 export function getStatus(schedule, baseDate = new Date()) {
   const today = jstParts(baseDate);
-  const todayHours = hoursFor(schedule, today.ymd, DOW_KEYS[today.dow]);
+  const todayVal = hoursFor(schedule, today.ymd, DOW_KEYS[today.dow]);
+  const todayHours = openVal(todayVal);
   const isOpen = !!todayHours;
 
   const result = {
@@ -42,8 +49,8 @@ export function getStatus(schedule, baseDate = new Date()) {
     dateLabel: `${today.m}/${today.d}`,
     weekdayJa: DOW_JA[today.dow],
     isOpen,
-    hours: todayHours || null,          // {open, close, note?}
-    note: todayHours?.note || '',
+    hours: todayHours,                  // {open, close, note?} or null
+    note: todayVal?.note || '',         // 営業日・休業日どちらの一言も拾う
     nextOpen: null,                     // 休業日だけ埋める
   };
 
@@ -51,7 +58,7 @@ export function getStatus(schedule, baseDate = new Date()) {
     for (let i = 1; i <= 14; i++) {
       const d = new Date(baseDate.getTime() + i * 86400000);
       const p = jstParts(d);
-      const h = hoursFor(schedule, p.ymd, DOW_KEYS[p.dow]);
+      const h = openVal(hoursFor(schedule, p.ymd, DOW_KEYS[p.dow]));
       if (h) {
         result.nextOpen = {
           date: p.ymd,

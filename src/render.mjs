@@ -59,8 +59,8 @@ function fill(tpl, map) {
 }
 
 // ---- Googleスプレッドシート（公開CSV）から臨時休業/時間変更を読む ----
-// 列は2つだけ: A=日付(YYYY-MM-DD) / B=営業時間(例 14:00-18:00)
-//   営業時間が空 → 臨時休業 / 「14:00-18:00」→ 時間変更
+// 列: A=日付(YYYY-MM-DD) / B=営業時間(例 14:00-18:00) / C=備考(任意の一言)
+//   営業時間が空 → 臨時休業 / 「14:00-18:00」→ 時間変更 / 備考はストーリーに表示
 function parseCsv(text) {
   const rows = []; let row = [], field = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
@@ -93,9 +93,17 @@ async function fetchSheetOverrides(url) {
     const date = normDate(r[0] || '');
     if (!date) continue; // ヘッダーや空行はスキップ
     const hours = (r[1] || '').trim();
-    if (!hours) { out[date] = null; continue; }          // 空 → 臨時休業
+    const note = (r[2] || '').trim();
+    if (!hours) {                                        // 空 → 臨時休業
+      out[date] = note ? { closed: true, note } : null;
+      continue;
+    }
     const p = hours.split(/[-–—〜～~]/).map((x) => x.trim());
-    out[date] = (p.length >= 2 && p[0] && p[1]) ? { open: p[0], close: p[1] } : null;
+    if (p.length >= 2 && p[0] && p[1]) {
+      out[date] = note ? { open: p[0], close: p[1], note } : { open: p[0], close: p[1] };
+    } else {
+      out[date] = note ? { closed: true, note } : null;
+    }
   }
   return out;
 }
@@ -153,7 +161,8 @@ async function main() {
 
   let html = await readFile(path.join(__dirname, 'template.html'), 'utf8');
   html = fill(html, map);
-  if (!s.note) html = html.replace(/<div class="note only-note">\s*<\/div>/, '');
+  // 備考が無い日は空のnote要素を消す（余白が出ないように）
+  if (!s.note) html = html.replace(/<div class="note[^"]*">\s*<\/div>/g, '');
 
   const outName = arg ? `story-${s.date}.png` : 'story.png';
   const outPath = path.join(outDir, outName);
