@@ -4,7 +4,7 @@
 //   node src/render.mjs                → 今日の分を out/story.png に出力
 //   node src/render.mjs 2026-07-15     → 指定日でテスト出力
 //
-import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -129,6 +129,14 @@ async function main() {
 
   const outDir = path.join(ROOT, 'out');
   await mkdir(outDir, { recursive: true });
+
+  // 定休日は投稿しない（postClosedDays=false）。ただし臨時休業は告知したいので投稿する。
+  if (!s.isOpen && !s.temporaryClosure && schedule.postClosedDays === false) {
+    const skipPath = path.join(outDir, arg ? `story-${s.date}.png` : 'story.png');
+    await rm(skipPath, { force: true }).catch(() => {});
+    console.log(`[skip] ${s.date}(${s.weekdayJa}) は定休日のため投稿しません`);
+    return null;
+  }
 
   // 背景画像を用意して file:// URL にする
   const bgSrc = await pickBackground(s.date);

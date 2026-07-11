@@ -26,10 +26,15 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Render today's story PNG
-        run: node src/render.mjs
+        id: render
+        run: |
+          node src/render.mjs
+          # 休業日など画像が作られなかった場合は後続をスキップする
+          if [ -f out/story.png ]; then echo "post=yes" >> "$GITHUB_OUTPUT"; else echo "post=no" >> "$GITHUB_OUTPUT"; echo "画像なし（休業日など）→ 投稿スキップ"; fi
 
       - name: Publish PNG to a public URL (immutable commit on published branch)
         id: publish
+        if: steps.render.outputs.post == 'yes'
         run: |
           OWNER_REPO="${{ github.repository }}"
           mkdir -p published
@@ -45,6 +50,7 @@ jobs:
           echo "image_url=https://raw.githubusercontent.com/${OWNER_REPO}/${SHA}/published/story.png" >> "$GITHUB_OUTPUT"
 
       - name: Post to Instagram Stories
+        if: steps.render.outputs.post == 'yes'
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
