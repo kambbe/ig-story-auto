@@ -52,12 +52,10 @@
       .scrim {
         position: absolute;
         inset: 0;
-        background: linear-gradient(
-          180deg,
-          rgba(0, 0, 0, 0.55),
-          rgba(0, 0, 0, 0.4) 40%,
-          rgba(0, 0, 0, 0.72)
-        );
+        /* 中央を暗くする楕円 ＋ 上下の暗幕。明るい/柄の多い写真でも文字が読める */
+        background:
+          radial-gradient(ellipse 75% 48% at 50% 50%, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0) 72%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.32) 40%, rgba(0, 0, 0, 0.7));
       }
 
       .frame {
