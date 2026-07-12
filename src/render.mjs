@@ -18,7 +18,8 @@ const IMG_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
 const HEIC_EXT = ['.heic', '.heif'];               // iPhone写真。内部でJPEGに変換して使う
 const ALL_EXT = [...IMG_EXT, ...HEIC_EXT];
 
-// backgrounds/ から日替わりで1枚選ぶ（日付で決まるので毎日変わる・同じ日は同じ）
+// backgrounds/ から日替わりで1枚選ぶ。
+// 経過日数ベースの巡回：連続する日は必ず次の1枚へ進み、全部使い切ってから最初に戻る（抜け・重複なし）。同じ日は同じ画像。
 async function pickBackground(dateStr) {
   const dir = path.join(ROOT, 'backgrounds');
   if (!existsSync(dir)) return null;
@@ -34,8 +35,9 @@ async function pickBackground(dateStr) {
     return null;
   }
 
-  const seed = Number(dateStr.replaceAll('-', ''));
-  const file = files[seed % files.length];
+  // 1970-01-01 からの経過日数。連続する日は +1 されるので、名前順に1枚ずつ巡回する。
+  const dayIndex = Math.floor(Date.parse(`${dateStr}T00:00:00Z`) / 86400000);
+  const file = files[((dayIndex % files.length) + files.length) % files.length];
   return path.join(dir, file);
 }
 
@@ -149,9 +151,14 @@ async function main() {
     console.log('[bg] 背景画像なし（黒背景）');
   }
 
+  // theme（色）を :root 上書きCSSにする。設定が無ければ既定色のまま。
+  const t = schedule.theme || {};
+  const themeCss = `:root{${t.accent ? `--accent:${t.accent};` : ''}${t.background ? `--bg:${t.background};` : ''}}`;
+
   const map = {
     BODY_CLASS: s.isOpen ? 'is-open' : 'is-closed',
     BODY_STYLE: bodyStyle,
+    THEME: themeCss,
     SHOP_NAME: schedule.shopName,
     LOCATION: schedule.location || '',
     DATE_LABEL: s.dateLabel,
