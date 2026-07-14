@@ -39,7 +39,7 @@ async function getStatus(creationId) {
   return res.json();
 }
 
-async function main() {
+async function postOnce() {
   // 1) ストーリー用コンテナを作成
   const container = await api(`${IG_USER_ID}/media`, {
     media_type: 'STORIES',
@@ -59,6 +59,24 @@ async function main() {
   // 3) 公開
   const published = await api(`${IG_USER_ID}/media_publish`, { creation_id: creationId });
   console.log(`[post] published story id: ${published.id}`);
+}
+
+// 一時的なブロック/レート制限に備えて数回だけ再試行。成功したら即終了（＝二重投稿しない）。
+async function main() {
+  const MAX = 3;
+  const WAITS = [30000, 60000]; // 1回目失敗→30秒、2回目失敗→60秒
+  for (let attempt = 1; attempt <= MAX; attempt++) {
+    try {
+      await postOnce();
+      return; // 成功 → ここで終わり。以降のリトライはしない
+    } catch (e) {
+      console.error(`[post] 試行 ${attempt}/${MAX} 失敗: ${e.message}`);
+      if (attempt >= MAX) throw e; // 最後まで失敗ならエラー終了（失敗通知が飛ぶ）
+      const wait = WAITS[attempt - 1] ?? 60000;
+      console.log(`[post] ${wait / 1000}秒待って再試行します…`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
