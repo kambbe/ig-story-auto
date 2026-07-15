@@ -41,9 +41,10 @@ export function getStatus(schedule, baseDate = new Date()) {
   const todayVal = hoursFor(schedule, today.ymd, DOW_KEYS[today.dow]);
   const todayHours = openVal(todayVal);
   const isOpen = !!todayHours;
-  // overrides（シート含む）由来の休業 = 臨時休業。regular 由来 = 定休日。
+  // 臨時休業＝「普段は開けている日を、その日だけ閉める」。元々定休日の日は含めない（投稿しない）。
   const overrideExists = Object.prototype.hasOwnProperty.call(schedule.overrides || {}, today.ymd);
-  const temporaryClosure = !isOpen && overrideExists;
+  const regularOpenToday = !!(schedule.regular[DOW_KEYS[today.dow]]);
+  const temporaryClosure = !isOpen && overrideExists && regularOpenToday;
 
   const result = {
     shopName: schedule.shopName,
