@@ -101,10 +101,12 @@ async function fetchSheetOverrides(url) {
       continue;
     }
     const p = hours.split(/[-–—〜～~]/).map((x) => x.trim());
-    if (p.length >= 2 && p[0] && p[1]) {
+    const timeRe = /^\d{1,2}:\d{2}$/; // HH:MM
+    if (p.length === 2 && timeRe.test(p[0]) && timeRe.test(p[1])) {
       out[date] = note ? { open: p[0], close: p[1], note } : { open: p[0], close: p[1] };
     } else {
-      out[date] = note ? { closed: true, note } : null;
+      // 「-18:00」「18:00」「12-18」など不正な値 → 事故防止でこの行は無視（休業にしない）＋警告
+      console.warn(`[sheet] ${date} の営業時間「${hours}」が不正 → 行を無視（休業にはしません）。休業にしたい場合は営業時間を空欄に、時間変更は「12:00-18:00」の形で。`);
     }
   }
   return out;
