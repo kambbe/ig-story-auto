@@ -1,12 +1,13 @@
 name: daily-instagram-story
 
-# cronの目標時刻は JST 07:00（= UTC 22:00 前日）。
-# GitHubの定時実行は数時間遅れることがあるため、あえて早めに設定して開店前の着地を狙う。
-# （観測で約3時間遅延 → 実際は10時前後に投稿される想定。早く出るぶんには問題なし）
-# 手動実行（workflow_dispatch）で臨時にも回せる。
+# 投稿の主役は「外部cron(cron-job.org) → workflow_dispatch」で JST 9:30 ちょうどに実行。
+# 下の GitHub schedule は「万一 cron-job.org が動かなかった日のバックアップ」。
+# 主役(9:30)より必ず後に発火させるため JST 10:30 目標（= UTC 01:30）。
+# GitHubの定時は遅れることがあるが、10:30以降に動く＝通常は二重投稿ガードでスキップされる。
+# 手動実行（workflow_dispatch）でも回せる（cron-job.org もこれを叩いている）。
 on:
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '30 1 * * *'
   workflow_dispatch:
 
 permissions:
