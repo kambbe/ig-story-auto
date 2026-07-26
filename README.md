@@ -1,13 +1,13 @@
 # ig-story-auto — 営業案内ストーリーの自動投稿
 
-その日の営業状況（営業中／臨時休業）を毎朝 Instagram ストーリーズに自動投稿する仕組み。
+その日の営業状況（営業中／臨時休業）を、営業日の朝に Instagram ストーリーズへ自動投稿する仕組み。
 写真の上に、日付・OPEN/CLOSED・営業時間・次の営業日・一言（備考）を自動で載せて画像化する。
 
 - **営業日** … `OPEN` ＋ 日付・営業時間
 - **休業日** … `CLOSED` ＋ 次の営業日と営業時間
 - 臨時休業・時間変更は **Googleスプレッドシート**に1行足すだけ（スマホから、GitHub不要）
 - 背景写真は `backgrounds/` に入れておくと日替わりで自動差し替え（HEIC可）
-- 毎朝**決まった時刻**に自動投稿（cron-job.org → GitHub Actions）。トークンも毎月自動更新
+- 営業日の朝、**決まった時刻**に自動投稿（cron-job.org → GitHub Actions）。トークンも毎月自動更新
 
 日々の使い方・初期セットアップは **[運用ガイド.md](./運用ガイド.md)** を参照。
 
@@ -19,7 +19,7 @@
 schedule.json（週の固定営業時間）
         ＋
 Googleスプレッドシート（臨時休業・時間変更・備考）  ← スマホから編集
-        ↓  src/render.mjs が毎朝読み込み
+        ↓  src/render.mjs が朝に読み込み
 その日の状態を計算（src/status.mjs）
         ↓  src/template.html に流し込み
 Playwright で 1080×1920 PNG を生成（背景は backgrounds/ から日替わり）
@@ -38,7 +38,7 @@ Instagram グラフAPI（graph.instagram.com）でストーリー投稿
 | `src/post.mjs` | Instagram へストーリー投稿（2ステップ） |
 | `src/refresh-token.mjs` | 長期トークンを延長（月次で自動実行） |
 | `backgrounds/` | 背景写真（jpg/png/webp/heic、日替わりで1枚選択） |
-| `.github/workflows/daily-story.yml` | 毎朝 JST 10:00 に投稿 |
+| `.github/workflows/daily-story.yml` | 朝 JST 9:30 に投稿（定休日はスキップ） |
 | `.github/workflows/refresh-token.yml` | 毎月1日にトークンを自動更新 |
 
 ## ローカルで見た目を確認
@@ -145,7 +145,7 @@ GitHub の失敗通知をオンにしておくと安心。
 1. GitHub 右上アイコン → **Settings**（アカウント設定）→ **Notifications**。
 2. **Actions** の項目で「**Send notifications for failed workflows only**」にチェック（メール等で受け取る）。
 
-これで、毎朝のワークフローがコケた朝だけ通知が届く。成功時は静かなまま。
+これで、朝のワークフローがコケた朝だけ通知が届く。成功時は静かなまま。
 
 ## 時刻の正確さ（重要）
 

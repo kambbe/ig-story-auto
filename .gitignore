@@ -1,4 +1,4 @@
 node_modules/
-out/*.png
-out/*.html
+out/
 .env
+.DS_Store
