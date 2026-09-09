@@ -7,11 +7,11 @@ name: daily-instagram-story
 # 手動実行（workflow_dispatch）でも回せる（cron-job.org もこれを叩いている）。
 on:
   schedule:
-    - cron: '40 0 * * *'
+    - cron: "40 1 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write   # レンダリング画像を published ブランチへ push するため
+  contents: write # レンダリング画像を published ブランチへ push するため
 
 jobs:
   post-story:
@@ -21,7 +21,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install deps
         run: |
