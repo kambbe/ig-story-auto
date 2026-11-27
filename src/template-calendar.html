@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@500&family=Noto+Sans+JP:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===== 営業カレンダー。変数・書体は template.html とそろえる ===== */
+      :root {
+        --accent: #0abab5;      /* アクセント色（CLOSED・時間変更・今日の印・区切り） */
+        --ink: #ffffff;         /* メインの文字色（日付の数字） */
+        --muted: #d4d4d4;       /* ラベルの文字色（年・曜日・下の一言） */
+        --bg: #111111;
+
+        --fs-label: 30px;
+        --fs-mid: 44px;
+        --fs-lg: 56px;
+        --fs-status: 130px;
+
+        --display: "Oswald", "Noto Sans JP", sans-serif;
+        --body: "Noto Sans JP", sans-serif;
+
+        /* カレンダーの寸法 */
+        --cal-width: 924px;     /* 7列 × 132px */
+        --cell-h: 128px;
+        --fs-day: 50px;         /* 日付の数字 */
+        --fs-sub: 21px;         /* CLOSED・変更した時間 */
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--body);
+        overflow: hidden;
+      }
+
+      .bg {
+        position: absolute;
+        inset: 0;
+        background-image: var(--bg-url);
+        background-size: cover;
+        background-position: center;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        /* 営業案内より一段暗く：表の細かい文字を読ませるため */
+        background:
+          radial-gradient(ellipse 85% 55% at 50% 50%, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.2) 75%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.45) 40%, rgba(0, 0, 0, 0.75));
+      }
+      body.no-photo .bg,
+      body.no-photo .scrim {
+        display: none;
+      }
+
+      .frame {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+      }
+
+      .year {
+        margin-bottom: 30px;
+        font-size: 38px;
+        letter-spacing: 4px;
+      }
+      .month {
+        font-family: var(--display);
+        font-size: var(--fs-status);
+        line-height: 1;
+        letter-spacing: 2px;
+      }
+      .rule {
+        width: 90px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 2px;
+        margin: 34px auto 44px;
+      }
+
+      .cal {
+        width: var(--cal-width);
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: 60px; /* 曜日の行だけ低く */
+        grid-auto-rows: var(--cell-h);
+      }
+      .dow {
+        align-self: center;
+        font-family: var(--display);
+        font-size: 24px;
+        letter-spacing: 3px;
+        color: var(--muted);
+      }
+
+      .day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .num {
+        display: grid;
+        place-items: center;
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        font-family: var(--display);
+        font-size: var(--fs-day);
+        line-height: 1;
+      }
+      .sub {
+        min-height: 1em;
+        font-family: var(--display);
+        font-size: var(--fs-sub);
+        line-height: 1;
+        letter-spacing: 1px;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+      .sub .sep {
+        padding: 0 2px;
+      }
+
+      /* 休業日は薄く */
+      .day.is-closed .num {
+        opacity: 0.32;
+      }
+      .day.is-closed .sub {
+        color: var(--muted);
+        opacity: 0.45;
+        letter-spacing: 2px;
+      }
+
+      /* 今日の印 */
+      .day.is-today .num {
+        box-shadow: inset 0 0 0 4px var(--accent);
+      }
+      .day.is-today.is-closed .num {
+        opacity: 1;
+        color: rgb(255 255 255 / 0.4);
+      }
+
+      /* いつもの営業時間（曜日で違う店は消す） */
+      .base {
+        margin-top: 40px;
+        font-family: var(--display);
+        font-size: var(--fs-mid);
+        color: var(--accent);
+        letter-spacing: 3px;
+      }
+      .base .sep {
+        padding: 0 10px;
+      }
+      .base-lbl {
+        margin-right: 18px;
+        color: var(--muted);
+        font-size: var(--fs-label);
+        letter-spacing: 6px;
+        vertical-align: 0.12em;
+      }
+
+      .note {
+        margin-top: 26px;
+        font-size: var(--fs-label);
+        color: var(--muted);
+        letter-spacing: 2px;
+      }
+    </style>
+    <!-- schedule.json の theme から色を上書き（設定が無ければ既定色のまま） -->
+    <style>{{THEME}}</style>
+  </head>
+  <body class="{{BG_CLASS}}" style="{{BODY_STYLE}}">
+    <div class="bg"></div>
+    <div class="scrim"></div>
+
+    <div class="frame">
+      <div class="year">{{YEAR}}</div>
+      <div class="month">{{MONTH_NAME}}</div>
+      <div class="rule"></div>
+
+      <div class="cal">
+        <div class="dow">SUN</div>
+        <div class="dow">MON</div>
+        <div class="dow">TUE</div>
+        <div class="dow">WED</div>
+        <div class="dow">THU</div>
+        <div class="dow">FRI</div>
+        <div class="dow">SAT</div>
+        {{CELLS}}
+      </div>
+
+      <div class="base"><span class="base-lbl">OPEN</span>{{BASE_HOURS}}</div>
+      <div class="note">変更はストーリーでお知らせします</div>
+    </div>
+  </body>
+</html>

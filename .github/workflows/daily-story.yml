@@ -5,13 +5,28 @@ name: daily-instagram-story
 # 主役(9:30)の少し後に発火させるため JST 9:40 目標（= UTC 00:40）。
 # GitHubの定時は遅れることがあるので実際はもっと後になりうるが、いずれにせよ9:30の後 → 通常は二重投稿ガードでスキップ。
 # 手動実行（workflow_dispatch）でも回せる（cron-job.org もこれを叩いている）。
+#
+# 1回の実行で出すのは「営業案内 → カレンダー → ブログ更新」のうち、その朝にまだ出していないものだけ。
+# 二重投稿ガードはカードごと（published ブランチの記録ファイル。どれも投稿に成功したときだけ書く）:
+#   last_posted.txt（営業案内・YYYY-MM-DD） / last_calendar.txt（カレンダー・YYYY-MM） / last_blog_post.txt（ブログ・記事ID）
 on:
   schedule:
     - cron: "40 1 * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true = 画像を作って成果物（Artifacts）に上げるだけ。投稿も記録もしない"
+        type: boolean
+        default: false
 
 permissions:
-  contents: write # レンダリング画像を published ブランチへ push するため
+  contents: write # レンダリング画像と記録を published ブランチへ push するため
+
+# cron-job.org が数分おきに叩くので、実行が重ならないよう1本ずつ順番に走らせる。
+# 後の実行は前の実行の記録を見てから判断する（＝同じ画像を二重に出さない）。
+concurrency:
+  group: daily-story
+  cancel-in-progress: false
 
 jobs:
   post-story:
@@ -21,68 +36,114 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install deps
         run: |
           npm install
           npx playwright install --with-deps chromium
 
-      - name: Render today's story PNG
+      # published ブランチから記録を読む（まだ無いファイルは「初回」）
+      - name: Read records
+        run: |
+          mkdir -p state
+          rc=0; git ls-remote --exit-code --heads origin published >/dev/null || rc=$?
+          if [ "$rc" = "0" ]; then
+            # 取り込み先を明示する（明示しないと origin/published が更新されないことがある）
+            git fetch origin +refs/heads/published:refs/remotes/origin/published
+            for f in last_posted.txt last_calendar.txt last_blog_post.txt; do
+              git show "origin/published:$f" > "state/$f" 2>/dev/null || rm -f "state/$f"
+            done
+          elif [ "$rc" != "2" ]; then
+            echo "::error::published ブランチを読めない（記録が分からないので止める）"; exit 1
+          fi
+          for f in state/*.txt; do [ -e "$f" ] && echo "$(basename "$f"): $(cat "$f")"; done; true
+
+      # 記録を見て、その朝に出すものだけ作る（定休日は何も作らない）
+      - name: Render images
         id: render
+        env:
+          STATE_DIR: state
         run: |
           node src/render.mjs
-          # 休業日など画像が作られなかった場合は後続をスキップする
-          if [ -f out/story.png ]; then echo "post=yes" >> "$GITHUB_OUTPUT"; else echo "post=no" >> "$GITHUB_OUTPUT"; echo "画像なし（休業日など）→ 投稿スキップ"; fi
+          echo "posts=$(wc -l < out/posts.tsv | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "records=$(wc -l < out/records.tsv | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          {
+            echo "### この実行で出すもの"
+            if [ -s out/posts.tsv ]; then cut -f1 out/posts.tsv | sed 's/^/- /'; else echo "なし"; fi
+            if [ -s out/records.tsv ]; then echo; echo "記録だけ（初回）: $(tr '\t\n' '= ' < out/records.tsv)"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      # 二重投稿ガード：published ブランチの last_posted.txt を見て、今日(JST)もう投稿済みなら以降を全部スキップ
-      - name: Skip if already posted today
-        id: dup
-        if: steps.render.outputs.post == 'yes'
-        run: |
-          git fetch origin published >/dev/null 2>&1 || true
-          LAST=$(git show origin/published:last_posted.txt 2>/dev/null || echo "")
-          TODAY=$(TZ=Asia/Tokyo date +%F)
-          if [ "$LAST" = "$TODAY" ]; then
-            echo "already=yes" >> "$GITHUB_OUTPUT"
-            echo "本日($TODAY)は投稿済み → スキップ（二重投稿防止）"
-          else
-            echo "already=no" >> "$GITHUB_OUTPUT"
-          fi
+      # dry_run: 投稿せず、作った画像を成果物に上げるだけ
+      - name: Upload images (dry run)
+        if: inputs.dry_run
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-images
+          path: |
+            out/*.png
+            out/posts.tsv
+            out/records.tsv
+          if-no-files-found: warn
 
-      - name: Publish PNG to a public URL (immutable commit on published branch)
+      # 出す画像をまとめて published ブランチに1回で push し、raw URL の元になるコミットを作る。
+      # ブランチは毎回 main から作り直すので、記録ファイルはここで引き継ぐ
+      - name: Publish images to a public URL (immutable commit on published branch)
         id: publish
-        if: steps.render.outputs.post == 'yes' && steps.dup.outputs.already != 'yes'
+        if: ${{ !inputs.dry_run && steps.render.outputs.posts != '0' }}
         run: |
-          OWNER_REPO="${{ github.repository }}"
-          mkdir -p published
-          cp out/story.png published/story.png
           git config user.name  "story-bot"
           git config user.email "story-bot@users.noreply.github.com"
-          git fetch origin published || true
+          mkdir -p published
+          while IFS=$'\t' read -r file rec val <&3; do cp "out/$file" "published/$file"; done 3< out/posts.tsv
           git checkout -B published
-          git add -f published/story.png
-          git commit -m "story image $(date -u +%FT%TZ)" || echo "no changes"
+          git add -f published/*.png
+          for f in state/*.txt; do [ -e "$f" ] && cp "$f" . && git add -f "$(basename "$f")"; done; true
+          git commit -m "story images $(date -u +%FT%TZ)"
           git push -f origin published
-          SHA=$(git rev-parse HEAD)
-          echo "image_url=https://raw.githubusercontent.com/${OWNER_REPO}/${SHA}/published/story.png" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      # 順番に投稿し、1枚ずつ成功したらすぐ記録して push する。
+      # 失敗したらそこで止める（記録済みのものは残る。次の実行で、失敗した画像から順番どおりにやり直す）
       - name: Post to Instagram Stories
-        if: steps.render.outputs.post == 'yes' && steps.dup.outputs.already != 'yes'
+        if: ${{ !inputs.dry_run && steps.render.outputs.posts != '0' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          IMAGE_URL: ${{ steps.publish.outputs.image_url }}
-        run: node src/post.mjs
-
-      # 投稿が成功したときだけ「今日投稿した」記録を残す（失敗時は記録せず、同日中の再試行を許可）
-      - name: Record posted date (dup guard)
-        if: steps.render.outputs.post == 'yes' && steps.dup.outputs.already != 'yes'
+          BASE_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.publish.outputs.sha }}/published
         run: |
-          TODAY=$(TZ=Asia/Tokyo date +%F)
+          first=yes
+          while IFS=$'\t' read -r file rec val <&3; do
+            [ "$first" = yes ] || sleep 5
+            first=no
+            echo "::group::$file"
+            if ! IMAGE_URL="$BASE_URL/$file" node src/post.mjs; then
+              echo "::error::$file の投稿に失敗 → ここで止める（次の実行でこの画像からやり直す）"
+              exit 1
+            fi
+            echo "$val" > "$rec"
+            git add -f "$rec"
+            git commit -m "posted $file ($val)"
+            git push origin published || { sleep 5; git push origin published; }
+            echo "::endgroup::"
+          done 3< out/posts.tsv
+
+      # 初回は、今の記事・今月のカレンダーを出さずに記録だけする
+      - name: Record without posting (first run)
+        if: ${{ !inputs.dry_run && steps.render.outputs.records != '0' }}
+        run: |
           git config user.name  "story-bot"
           git config user.email "story-bot@users.noreply.github.com"
-          echo "$TODAY" > last_posted.txt
-          git add -f last_posted.txt
-          git commit -m "posted $TODAY" || echo "no changes"
-          git push origin published
+          if [ "$(git rev-parse --abbrev-ref HEAD)" != "published" ]; then
+            if git rev-parse -q --verify origin/published >/dev/null; then
+              git checkout -B published origin/published
+            else
+              git checkout -B published
+            fi
+          fi
+          while IFS=$'\t' read -r rec val <&3; do
+            echo "$val" > "$rec"
+            git add -f "$rec"
+          done 3< out/records.tsv
+          git commit -m "record (first run) $(date -u +%FT%TZ)" || echo "no changes"
+          git push origin published || { sleep 5; git push origin published; }

@@ -14,6 +14,12 @@
     "background": "#111111"
   },
 
+  "//calendar": "true = 月の最初に投稿する朝、営業案内のあとにその月の営業カレンダーを1枚出す。false = 出さない。",
+  "calendar": true,
+
+  "//blogUrl": "WordPress ブログのURL。新しい記事が出たら、次の投稿の朝に営業案内のあとへ1本1枚のカードを出す（多い日は新しい2本まで）。空ならオフ。",
+  "blogUrl": "https://blog.hasgrown.com",
+
   "//": "regular = 毎週の固定営業時間。null = 定休日。時間は24時間表記。",
   "regular": {
     "mon": null,

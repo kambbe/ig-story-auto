@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@500&family=Noto+Sans+JP:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===== ブログ更新カード。変数・書体は template.html とそろえる ===== */
+      :root {
+        --accent: #0abab5;      /* アクセント色（区切り・「プロフィールのリンクから」） */
+        --ink: #ffffff;         /* メインの文字色（「ブログを更新しました」） */
+        --muted: #d4d4d4;       /* ラベルの文字色（「ブログを更新しました」） */
+        --bg: #111111;
+
+        --fs-label: 30px;
+        --fs-mid: 44px;
+        --fs-lg: 56px;
+        --fs-status: 130px;
+
+        --display: "Oswald", "Noto Sans JP", sans-serif;
+        --body: "Noto Sans JP", sans-serif;
+
+        --card-width: 920px;    /* アイキャッチ（1200×630）の幅 */
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--body);
+        overflow: hidden;
+      }
+
+      .bg {
+        position: absolute;
+        inset: 0;
+        background-image: var(--bg-url);
+        background-size: cover;
+        background-position: center;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 80% 52% at 50% 50%, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.15) 75%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0.72));
+      }
+      body.no-photo .bg,
+      body.no-photo .scrim {
+        display: none;
+      }
+
+      .frame {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+      }
+
+      .eyecatch {
+        width: var(--card-width);
+        aspect-ratio: 1200 / 630;
+        margin-bottom: 72px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      }
+      .eyecatch img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .kicker {
+        font-size: 38px;
+        letter-spacing: 4px;
+      }
+
+      /* タイトルはアイキャッチ画像に入っているので、アイキャッチが無い記事のときだけ出す */
+      .title {
+        width: var(--card-width);
+        margin-top: 30px;
+        font-size: var(--fs-lg);
+        font-weight: 500;
+        line-height: 1.45;
+        letter-spacing: 1px;
+        word-break: auto-phrase;  /* 日本語を文節で折り返す */
+        text-wrap: balance;
+      }
+
+      .rule {
+        width: 90px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 2px;
+        margin: 44px auto 34px;
+      }
+
+      .cta {
+        font-size: var(--fs-label);
+        color: var(--accent);
+        letter-spacing: 3px;
+      }
+    </style>
+    <!-- schedule.json の theme から色を上書き（設定が無ければ既定色のまま） -->
+    <style>{{THEME}}</style>
+  </head>
+  <body class="{{BG_CLASS}}" style="{{BODY_STYLE}}">
+    <div class="bg"></div>
+    <div class="scrim"></div>
+
+    <div class="frame">
+      <figure class="eyecatch"><img src="{{IMAGE_URL}}" alt="" /></figure>
+      <div class="kicker">ブログを更新しました</div>
+      <h1 class="title">{{TITLE}}</h1>
+      <div class="rule"></div>
+      <div class="cta">プロフィールのリンクから</div>
+    </div>
+  </body>
+</html>
