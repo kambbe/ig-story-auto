@@ -15,7 +15,7 @@
   },
 
   "//calendar": "true = 月の最初に投稿する朝、営業案内のあとにその月の営業カレンダーを1枚出す。false = 出さない。",
-  "calendar": true,
+  "calendar": false,
 
   "//blogUrl": "WordPress ブログのURL。新しい記事が出たら、次の投稿の朝に営業案内のあとへ1本1枚のカードを出す（多い日は新しい2本まで）。空ならオフ。",
   "blogUrl": "https://blog.hasgrown.com",
